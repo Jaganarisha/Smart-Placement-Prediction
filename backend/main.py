@@ -1,16 +1,3 @@
-```python
-"""
-main.py
--------
-FastAPI backend for the Smart Placement Prediction System.
-
-Run:
-    uvicorn main:app --reload
-
-Docs:
-    http://127.0.0.1:8000/docs
-"""
-
 import os
 import sqlite3
 import subprocess
@@ -48,8 +35,6 @@ app = FastAPI(
 # ============================================================
 # CORS CONFIGURATION
 # ============================================================
-# This allows your deployed React frontend to communicate
-# with your deployed FastAPI backend.
 
 app.add_middleware(
     CORSMiddleware,
@@ -71,7 +56,6 @@ def get_conn():
 
 
 def init_db():
-
     conn = get_conn()
 
     conn.execute(
@@ -103,19 +87,12 @@ def init_db():
     conn.commit()
 
     # Seed database from dataset.csv
-    cur = conn.execute(
-        "SELECT COUNT(*) as c FROM students"
-    )
-
+    cur = conn.execute("SELECT COUNT(*) AS c FROM students")
     count = cur.fetchone()["c"]
 
-    dataset_path = os.path.join(
-        BASE_DIR,
-        "dataset.csv"
-    )
+    dataset_path = os.path.join(BASE_DIR, "dataset.csv")
 
     if count == 0 and os.path.exists(dataset_path):
-
         import csv
 
         with open(
@@ -125,13 +102,10 @@ def init_db():
         ) as f:
 
             reader = csv.DictReader(f)
-
             rows = list(reader)[:500]
 
             for r in rows:
-
                 try:
-
                     conn.execute(
                         """
                         INSERT OR IGNORE INTO students
@@ -194,7 +168,7 @@ def init_db():
     conn.close()
 
 
-# Initialize database when backend starts
+# Initialize database
 init_db()
 
 
@@ -203,9 +177,7 @@ init_db()
 # ============================================================
 
 class StudentIn(BaseModel):
-
     student_id: Optional[str] = None
-
     name: str
     department: str
     gender: str
@@ -282,9 +254,7 @@ class StudentIn(BaseModel):
 
 
 class PredictionRequest(BaseModel):
-
     name: Optional[str] = "Student"
-
     department: str
     gender: str
 
@@ -365,7 +335,6 @@ class PredictionRequest(BaseModel):
 
 @app.get("/")
 def root():
-
     return {
         "message": "Smart Placement Prediction System API",
         "docs": "/docs",
@@ -379,7 +348,6 @@ def root():
 
 @app.get("/health")
 def health():
-
     return {
         "status": "ok",
         "model_ready": model_module.MODEL_READY,
@@ -395,18 +363,16 @@ def health():
 def predict(payload: PredictionRequest):
 
     if not model_module.MODEL_READY:
-
         raise HTTPException(
             status_code=503,
             detail=(
                 model_module.MODEL_LOAD_ERROR
                 or "Model not trained yet. "
-                   "Run: python train_model.py"
+                "Run: python train_model.py"
             ),
         )
 
     try:
-
         result = model_module.predict_student(
             payload.model_dump()
         )
@@ -414,7 +380,6 @@ def predict(payload: PredictionRequest):
         return result
 
     except Exception as exc:
-
         raise HTTPException(
             status_code=500,
             detail=str(exc)
@@ -426,7 +391,6 @@ def predict(payload: PredictionRequest):
 # ============================================================
 
 def _row_to_dict(row) -> dict:
-
     return dict(row)
 
 
@@ -444,23 +408,17 @@ def list_students(
     conn = get_conn()
 
     query = "SELECT * FROM students WHERE 1=1"
-
     params: List = []
 
     if department:
-
         query += " AND department = ?"
-
         params.append(department)
 
     if placement_status:
-
         query += " AND placement_status = ?"
-
         params.append(placement_status)
 
     if search:
-
         query += (
             " AND (name LIKE ? OR student_id LIKE ?)"
         )
@@ -506,7 +464,7 @@ def list_students(
     ).fetchall()
 
     total = conn.execute(
-        "SELECT COUNT(*) c FROM students"
+        "SELECT COUNT(*) AS c FROM students"
     ).fetchone()["c"]
 
     conn.close()
@@ -538,7 +496,6 @@ def get_student(student_id: str):
     conn.close()
 
     if not row:
-
         raise HTTPException(
             status_code=404,
             detail="Student not found"
@@ -567,7 +524,6 @@ def create_student(student: StudentIn):
     ).fetchone()
 
     if existing:
-
         conn.close()
 
         raise HTTPException(
@@ -576,13 +532,10 @@ def create_student(student: StudentIn):
         )
 
     placement_status = "Not Placed"
-
     placement_probability = 0.0
 
     if model_module.MODEL_READY:
-
         try:
-
             pred = model_module.predict_student(
                 student.model_dump()
             )
@@ -649,7 +602,6 @@ def create_student(student: StudentIn):
     )
 
     conn.commit()
-
     conn.close()
 
     return {
@@ -676,7 +628,6 @@ def update_student(
     ).fetchone()
 
     if not existing:
-
         conn.close()
 
         raise HTTPException(
@@ -685,13 +636,10 @@ def update_student(
         )
 
     placement_status = None
-
     placement_probability = None
 
     if model_module.MODEL_READY:
-
         try:
-
             pred = model_module.predict_student(
                 student.model_dump()
             )
@@ -760,7 +708,6 @@ def update_student(
     )
 
     conn.commit()
-
     conn.close()
 
     return {
@@ -783,7 +730,6 @@ def delete_student(student_id: str):
     ).fetchone()
 
     if not existing:
-
         conn.close()
 
         raise HTTPException(
@@ -800,7 +746,6 @@ def delete_student(student_id: str):
     )
 
     conn.commit()
-
     conn.close()
 
     return {
@@ -829,7 +774,6 @@ def analytics():
     total = len(rows)
 
     if total == 0:
-
         return {
             "total_students": 0
         }
@@ -895,11 +839,9 @@ def analytics():
         dept_stats[d]["total"] += 1
 
         if r["placement_status"] == "Placed":
-
             dept_stats[d]["placed"] += 1
 
     department_comparison = [
-
         {
             "department": d,
             "total": v["total"],
@@ -915,15 +857,10 @@ def analytics():
                 else 0
             ),
         }
-
-        for d, v
-        in dept_stats.items()
+        for d, v in dept_stats.items()
     ]
 
-    def impact(
-        field,
-        threshold=0
-    ):
+    def impact(field, threshold=0):
 
         with_it = [
             r
@@ -938,7 +875,6 @@ def analytics():
         ]
 
         rate_with = (
-
             round(
                 len(
                     [
@@ -953,13 +889,11 @@ def analytics():
                 100,
                 2
             )
-
             if with_it
             else 0
         )
 
         rate_without = (
-
             round(
                 len(
                     [
@@ -974,7 +908,6 @@ def analytics():
                 100,
                 2
             )
-
             if without_it
             else 0
         )
@@ -985,7 +918,6 @@ def analytics():
         }
 
     return {
-
         "total_students": total,
 
         "placed_students": len(placed),
@@ -1020,17 +952,14 @@ def analytics():
             ),
 
         "placement_distribution": [
-
             {
                 "name": "Placed",
                 "value": len(placed)
             },
-
             {
                 "name": "Not Placed",
                 "value": total - len(placed)
             }
-
         ],
     }
 
@@ -1041,7 +970,6 @@ def analytics():
 
 @app.get("/model-performance")
 def model_performance():
-
     return model_module.get_model_metrics()
 
 
@@ -1083,11 +1011,8 @@ def train_model():
         model_module.load_bundle()
 
         return {
-            "message":
-                "Model trained successfully",
-
-            "log":
-                result.stdout[-2000:]
+            "message": "Model trained successfully",
+            "log": result.stdout[-2000:]
         }
 
     except subprocess.TimeoutExpired:
@@ -1096,4 +1021,3 @@ def train_model():
             status_code=500,
             detail="Training timed out"
         )
-```
