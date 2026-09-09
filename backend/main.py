@@ -419,9 +419,7 @@ def list_students(
         params.append(placement_status)
 
     if search:
-        query += (
-            " AND (name LIKE ? OR student_id LIKE ?)"
-        )
+        query += " AND (name LIKE ? OR student_id LIKE ?)"
 
         params.extend(
             [
@@ -445,9 +443,7 @@ def list_students(
             else "DESC"
         )
 
-        query += (
-            f" ORDER BY {sort_by} {direction}"
-        )
+        query += f" ORDER BY {sort_by} {direction}"
 
     query += " LIMIT ? OFFSET ?"
 
@@ -936,8 +932,7 @@ def analytics():
 
         "at_risk_students": at_risk,
 
-        "department_comparison":
-            department_comparison,
+        "department_comparison": department_comparison,
 
         "internship_impact":
             impact("internships"),
